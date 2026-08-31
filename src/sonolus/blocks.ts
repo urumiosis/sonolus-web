@@ -35,6 +35,10 @@ export class FloatBlock {
   add(index: number, value: number): number {
     return this.set(index, this.get(index) + value)
   }
+
+  clear(): void {
+    this.values.fill(0)
+  }
 }
 
 export class SonolusBlocks {
@@ -58,6 +62,6 @@ export class SonolusBlocks {
   }
 
   reset(): void {
-    for (const block of this.blocks.values()) block.values.fill(0)
+    for (const block of this.blocks.values()) block.clear()
   }
 }
