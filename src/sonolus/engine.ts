@@ -1,6 +1,7 @@
 import type { EnginePlayData, EnginePlayDataArchetype } from '@sonolus/core'
 import { BlockId, SonolusBlocks } from './blocks'
 import { CallbackExecutor, type CallbackName } from './callbacks'
+import { SonolusPresentation } from './presentation'
 
 export type RuntimeFrame = { time: number; deltaTime: number; scaledTime: number; touchCount: number; navigationDirection: -1 | 1 }
 export interface EntityState { archetype: string; id: number; data: number[]; spawnTime: number; despawnTime: number; alive: boolean; spawned: boolean; initialized: boolean; touched: boolean; spawnOrder: number }
@@ -10,6 +11,7 @@ export interface EngineContext { frame: RuntimeFrame; entities: EntityState[]; s
 export class SonolusPlayRuntime {
   readonly context: EngineContext = { frame: { time: 0, deltaTime: 0, scaledTime: 0, touchCount: 0, navigationDirection: 1 }, entities: [], score: 0, life: 1000, combo: 0 }
   readonly blocks = new SonolusBlocks()
+  readonly presentation = new SonolusPresentation()
   private readonly callbacks: CallbackExecutor
   private readonly archetypes = new Map<string, EnginePlayDataArchetype>()
   private nextEntityId = 1
@@ -26,7 +28,7 @@ export class SonolusPlayRuntime {
     this.context.entities.length = 0
     this.context.score = 0; this.context.life = 1000; this.context.combo = 0
     this.nextEntityId = 1; this.prepared = false
-    this.blocks.reset(); this.syncRuntimeBlocks()
+    this.presentation.clear(); this.blocks.reset(); this.syncRuntimeBlocks()
   }
 
   spawn(archetype: string, data: number[], spawnTime = 0, despawnTime = Infinity): EntityState {
@@ -48,6 +50,7 @@ export class SonolusPlayRuntime {
   /** One update cycle: spawn → initialize → sequential → input → parallel → despawn. */
   update(time: number, touches = 0): void {
     this.prepare(); this.setTime(time)
+    this.presentation.clear()
     this.context.frame.touchCount = Math.max(0, touches)
     this.blocks.set(BlockId.RuntimeUpdate, 3, this.context.frame.touchCount)
 
