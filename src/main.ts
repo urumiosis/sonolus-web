@@ -1,5 +1,6 @@
 import './style.css'
 import { SonolusServerClient, type ServerItem } from './sonolus/server'
+import { SonolusRuntime } from './sonolus/runtime'
 
 const app = document.querySelector<HTMLDivElement>('#app')
 if (!app) throw new Error('App root not found')
@@ -35,7 +36,7 @@ app.innerHTML = `
 
     <section class="panel">
       <h2>Runtime bootstrap</h2>
-      <p id="message">Canvas, timing, input, and browser audio are ready. Server discovery is the first real runtime milestone.</p>
+      <p id="message">Browser runtime clock and touch state are active. Next milestone: execute Sonolus engine nodes.</p>
       <div class="checks">
         <span id="graphics">Graphics: checking…</span>
         <span id="audio">Audio: locked until interaction</span>
@@ -49,10 +50,12 @@ const canvas = document.querySelector<HTMLCanvasElement>('#stage')!
 const ctx = canvas.getContext('2d')!
 const graphics = document.querySelector<HTMLSpanElement>('#graphics')!
 const audio = document.querySelector<HTMLSpanElement>('#audio')!
+const input = document.querySelector<HTMLSpanElement>('#input')!
 const serverMessage = document.querySelector<HTMLParagraphElement>('#server-message')!
 const serverUrl = document.querySelector<HTMLInputElement>('#server-url')!
 const items = document.querySelector<HTMLDivElement>('#items')!
 const clientButton = document.querySelector<HTMLButtonElement>('#connect')!
+const runtime = new SonolusRuntime()
 
 function resize(): void {
   const ratio = Math.min(window.devicePixelRatio || 1, 2)
@@ -64,6 +67,7 @@ function resize(): void {
 }
 
 function draw(now: number): void {
+  const update = runtime.update(now)
   const w = canvas.clientWidth
   const h = canvas.clientHeight
   ctx.clearRect(0, 0, w, h)
@@ -83,7 +87,7 @@ function draw(now: number): void {
     ctx.stroke()
   }
 
-  const pulse = (Math.sin(now / 400) + 1) / 2
+  const pulse = (Math.sin(update.time * Math.PI * 2.5) + 1) / 2
   ctx.strokeStyle = `rgba(255,255,255,${0.25 + pulse * 0.15})`
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -94,7 +98,7 @@ function draw(now: number): void {
   ctx.fillStyle = 'rgba(255,255,255,0.55)'
   ctx.font = '14px system-ui, sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText('Sonolus Web runtime stage', w / 2, h / 2)
+  ctx.fillText(`Sonolus runtime ${update.time.toFixed(2)}s`, w / 2, h / 2)
   requestAnimationFrame(draw)
 }
 
@@ -159,7 +163,9 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-type]')
 }
 
 window.addEventListener('resize', resize)
-canvas.addEventListener('pointerdown', async () => {
+canvas.addEventListener('pointerdown', async (event) => {
+  runtime.setTouch(event.pointerId, event.offsetX, event.offsetY, true)
+  input.textContent = `Input: ${runtime.touchArray.length} active touch${runtime.touchArray.length === 1 ? '' : 'es'}`
   audio.textContent = 'Audio: interaction received'
   try {
     const context = new AudioContext()
@@ -170,6 +176,11 @@ canvas.addEventListener('pointerdown', async () => {
     audio.textContent = 'Audio: unavailable'
   }
 })
+canvas.addEventListener('pointerup', (event) => {
+  runtime.removeTouch(event.pointerId)
+  input.textContent = `Input: ${runtime.touchArray.length} active touch${runtime.touchArray.length === 1 ? '' : 'es'}`
+})
+canvas.addEventListener('pointercancel', (event) => runtime.removeTouch(event.pointerId))
 
 resize()
 requestAnimationFrame(draw)
