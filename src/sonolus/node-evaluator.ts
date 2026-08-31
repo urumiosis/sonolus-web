@@ -1,13 +1,6 @@
 import type { EngineDataNode } from '@sonolus/core'
 
-/**
- * Small, deterministic evaluator for the pure value/function subset of the
- * Sonolus node graph. It is deliberately side-effect free for now: rendering,
- * entity operations, audio, and input are supplied by the runtime later.
- *
- * This gives the browser client a real execution primitive instead of treating
- * EnginePlayData.nodes as opaque JSON.
- */
+/** Pure subset of the Sonolus node graph that can execute without side effects. */
 export type NodeEnvironment = {
   values?: Map<number, number>
   random?: () => number
@@ -33,6 +26,7 @@ const unaryMath: Record<string, (a: number) => number> = {
   Negate: (x) => -x,
   Sign: Math.sign,
   Frac: (x) => x - Math.floor(x),
+  Log: Math.log,
 }
 
 const binaryMath: Record<string, (a: number, b: number) => number> = {
@@ -46,8 +40,6 @@ const binaryMath: Record<string, (a: number, b: number) => number> = {
   Min: Math.min,
   Max: Math.max,
   Arctan2: Math.atan2,
-  Lerp: (a, b) => a + (b - a),
-  Unlerp: (a, b) => b === 0 ? 0 : a / b,
 }
 
 function bool(value: boolean): number {
@@ -55,15 +47,20 @@ function bool(value: boolean): number {
 }
 
 /** Evaluate a single node recursively. Node indexes are zero-based. */
-export function evaluateNode(nodes: EngineDataNode[], index: number, env: NodeEnvironment = {}, stack = new Set<number>()): number {
+export function evaluateNode(
+  nodes: EngineDataNode[],
+  index: number,
+  env: NodeEnvironment = {},
+  stack = new Set<number>(),
+): number {
   if (index < 0 || index >= nodes.length) throw new RangeError(`Node index ${index} is out of range`)
-  if (stack.has(index)) throw new Error(`Cyclic node graph at ${index}`)
 
   const cached = env.values?.get(index)
   if (cached !== undefined) return cached
 
   const node = nodes[index]
   if ('value' in node) return node.value
+  if (stack.has(index)) throw new Error(`Cyclic node graph at ${index}`)
 
   stack.add(index)
   const args = node.args.map((arg) => evaluateNode(nodes, arg, env, stack))
@@ -81,10 +78,26 @@ export function evaluateNode(nodes: EngineDataNode[], index: number, env: NodeEn
     case 'Less': result = bool(args[0] < args[1]); break
     case 'LessOr': result = bool(args[0] <= args[1]); break
     case 'Clamp': result = Math.min(Math.max(args[0], args[1]), args[2]); break
-    case 'Remap': result = args[2] + (args[3] - args[2]) * ((args[0] - args[1]) || 0); break
-    case 'RemapClamped': result = Math.min(Math.max(args[2] + (args[3] - args[2]) * ((args[0] - args[1]) || 0), args[2]), args[3]); break
+    case 'Lerp': result = args[0] + (args[1] - args[0]) * args[2]; break
+    case 'LerpClamped': result = args[0] + (args[1] - args[0]) * Math.min(Math.max(args[2], 0), 1); break
+    case 'Unlerp': result = args[1] === args[0] ? 0 : (args[2] - args[0]) / (args[1] - args[0]); break
+    case 'UnlerpClamped': {
+      const t = args[1] === args[0] ? 0 : (args[2] - args[0]) / (args[1] - args[0])
+      result = Math.min(Math.max(t, 0), 1)
+      break
+    }
+    case 'Remap': {
+      const t = args[1] === args[0] ? 0 : (args[2] - args[0]) / (args[1] - args[0])
+      result = args[3] + (args[4] - args[3]) * t
+      break
+    }
+    case 'RemapClamped': {
+      const t = args[1] === args[0] ? 0 : (args[2] - args[0]) / (args[1] - args[0])
+      result = args[3] + (args[4] - args[3]) * Math.min(Math.max(t, 0), 1)
+      break
+    }
     case 'Random': result = (env.random ?? Math.random)(); break
-    case 'RandomInteger': result = Math.floor((env.random ?? Math.random)() * (args[0] ?? 1)); break
+    case 'RandomInteger': result = Math.floor((env.random ?? Math.random)() * Math.max(1, args[0] ?? 1)); break
     case 'If': result = args[0] !== 0 ? (args[1] ?? 0) : (args[2] ?? 0); break
     default: {
       const unary = unaryMath[node.func]
