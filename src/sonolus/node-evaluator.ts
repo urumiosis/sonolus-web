@@ -1,9 +1,14 @@
 import type { EngineDataNode } from '@sonolus/core'
+import { SonolusBlocks } from './blocks'
+import type { EntityState, SonolusPlayRuntime } from './engine'
 
-/** Pure subset of the Sonolus node graph that can execute without side effects. */
+/** Host bindings exposed to the Sonolus node program. */
 export type NodeEnvironment = {
   values?: Map<number, number>
   random?: () => number
+  blocks?: SonolusBlocks
+  runtime?: SonolusPlayRuntime
+  entity?: EntityState
 }
 
 const unaryMath: Record<string, (a: number) => number> = {
@@ -46,7 +51,7 @@ function bool(value: boolean): number {
   return value ? 1 : 0
 }
 
-/** Evaluate a single node recursively. Node indexes are zero-based. */
+/** Evaluate one node of Sonolus' flattened AST. */
 export function evaluateNode(
   nodes: EngineDataNode[],
   index: number,
@@ -99,6 +104,63 @@ export function evaluateNode(
     case 'Random': result = (env.random ?? Math.random)(); break
     case 'RandomInteger': result = Math.floor((env.random ?? Math.random)() * Math.max(1, args[0] ?? 1)); break
     case 'If': result = args[0] !== 0 ? (args[1] ?? 0) : (args[2] ?? 0); break
+    case 'Get': {
+      const block = args[0] ?? 0
+      const index = args[1] ?? 0
+      result = env.blocks?.get(block, index) ?? 0
+      break
+    }
+    case 'Set': {
+      const block = args[0] ?? 0
+      const index = args[1] ?? 0
+      result = env.blocks?.set(block, index, args[2] ?? 0) ?? (args[2] ?? 0)
+      break
+    }
+    case 'SetAdd': {
+      const block = args[0] ?? 0
+      const index = args[1] ?? 0
+      const value = (env.blocks?.get(block, index) ?? 0) + (args[2] ?? 0)
+      result = env.blocks?.set(block, index, value) ?? value
+      break
+    }
+    case 'SetSubtract': {
+      const block = args[0] ?? 0
+      const index = args[1] ?? 0
+      const value = (env.blocks?.get(block, index) ?? 0) - (args[2] ?? 0)
+      result = env.blocks?.set(block, index, value) ?? value
+      break
+    }
+    case 'SetMultiply': {
+      const block = args[0] ?? 0
+      const index = args[1] ?? 0
+      const value = (env.blocks?.get(block, index) ?? 0) * (args[2] ?? 0)
+      result = env.blocks?.set(block, index, value) ?? value
+      break
+    }
+    case 'SetDivide': {
+      const block = args[0] ?? 0
+      const index = args[1] ?? 0
+      const divisor = args[2] ?? 0
+      const value = divisor === 0 ? 0 : (env.blocks?.get(block, index) ?? 0) / divisor
+      result = env.blocks?.set(block, index, value) ?? value
+      break
+    }
+    case 'Spawn':
+      env.runtime?.spawn(String(args[0] ?? 0), args.slice(1))
+      result = 0
+      break
+    case 'DestroyParticleEffect':
+    case 'MoveParticleEffect':
+    case 'Play':
+    case 'PlayLooped':
+    case 'PlayLoopedScheduled':
+    case 'PlayScheduled':
+    case 'StopLooped':
+    case 'StopLoopedScheduled':
+    case 'SpawnParticleEffect':
+    case 'DebugLog':
+      result = 0
+      break
     default: {
       const unary = unaryMath[node.func]
       if (unary) {
@@ -110,7 +172,7 @@ export function evaluateNode(
         result = binary(args[0] ?? 0, args[1] ?? 0)
         break
       }
-      throw new Error(`Unsupported pure Sonolus function: ${node.func}`)
+      throw new Error(`Unsupported Sonolus function: ${node.func}`)
     }
   }
 
