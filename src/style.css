@@ -1,0 +1,26 @@
+* { box-sizing: border-box; }
+
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f4f5f7;
+  background: #090a0e;
+}
+
+body { margin: 0; min-width: 320px; }
+
+.shell { width: min(980px, 100%); margin: 0 auto; padding: 32px 20px 48px; }
+
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+.eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 800; letter-spacing: .16em; opacity: .55; }
+h1 { margin: 0; font-size: clamp(28px, 6vw, 48px); line-height: 1; }
+.subtitle { margin: 10px 0 0; opacity: .65; }
+.status { padding: 7px 10px; border: 1px solid #2d3039; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+
+.stage-wrap { overflow: hidden; border: 1px solid #292c34; border-radius: 14px; background: #11131a; }
+canvas { display: block; width: 100%; height: min(62vh, 620px); min-height: 360px; touch-action: none; }
+
+.panel { margin-top: 16px; padding: 18px; border: 1px solid #292c34; border-radius: 14px; background: #101218; }
+h2 { margin: 0 0 8px; font-size: 17px; }
+.panel p { margin: 0; color: #b9bcc5; line-height: 1.5; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.checks span { padding: 7px 9px; border-radius: 8px; background: #191c24; color: #c9ccd4; font-size: 12px; }
