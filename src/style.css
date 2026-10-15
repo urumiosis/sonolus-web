@@ -24,3 +24,48 @@ h2 { margin: 0 0 8px; font-size: 17px; }
 .panel p { margin: 0; color: #b9bcc5; line-height: 1.5; }
 .checks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .checks span { padding: 7px 9px; border-radius: 8px; background: #191c24; color: #c9ccd4; font-size: 12px; }
+
+
+button, input {
+  font: inherit;
+}
+
+button {
+  border: 1px solid #353946;
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: #f4f5f7;
+  background: #20232d;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) { background: #2a2e3a; }
+button:disabled { opacity: .55; cursor: wait; }
+
+.server-row { display: flex; gap: 8px; margin: 12px 0; }
+.server-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #353946;
+  border-radius: 9px;
+  color: #f4f5f7;
+  background: #090a0e;
+}
+.server-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.items { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+.items .item { overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+#skin-stage {
+  height: 320px;
+  min-height: 260px;
+  margin-top: 14px;
+  border: 1px solid #292c34;
+  border-radius: 10px;
+  background: #11131a;
+}
+@media (max-width: 520px) {
+  .shell { padding: 22px 12px 32px; }
+  header { flex-direction: column; }
+  .server-row { flex-direction: column; }
+  #skin-stage { height: 280px; min-height: 240px; }
+}
