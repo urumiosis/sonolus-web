@@ -143,7 +143,7 @@ function resolveResource(baseUrl: string, srl: Srl): string {
       throw new Error(`Invalid resource URL: ${srl.url}`)
     }
   }
-  if (srl.hash) return new URL(`/sonolus/repository/${encodeURIComponent(srl.hash)}`, baseUrl).toString()
+  if (srl.hash) return new URL(`sonolus/repository/${encodeURIComponent(srl.hash)}`, `${baseUrl.replace(/\/+$/, '')}/`).toString()
   throw new Error('Resource has neither a URL nor a hash')
 }
 
