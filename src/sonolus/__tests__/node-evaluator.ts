@@ -1,12 +1,13 @@
+import type { EngineDataNode } from '@sonolus/core'
 import { evaluateNode, evaluateNodes } from '../node-evaluator'
 
-const nodes = [
+const nodes: EngineDataNode[] = [
   { value: 2 },
   { value: 3 },
   { func: 'Add', args: [0, 1] },
   { func: 'Multiply', args: [2, 1] },
   { func: 'Greater', args: [3, 2] },
-] as const
+]
 
 function expect(actual: number, expected: number): void {
   if (actual !== expected) throw new Error(`Expected ${expected}, got ${actual}`)

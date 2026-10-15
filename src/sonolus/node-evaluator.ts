@@ -15,7 +15,7 @@ const binaryMath: Record<string, (a: number, b: number) => number> = {
 }
 const bool = (value: boolean): number => value ? 1 : 0
 
-export function evaluateNode(nodes: EngineDataNode[], index: number, env: NodeEnvironment = {}, stack = new Set<number>()): number {
+export function evaluateNode(nodes: readonly EngineDataNode[], index: number, env: NodeEnvironment = {}, stack = new Set<number>()): number {
   if (index < 0 || index >= nodes.length) throw new RangeError(`Node index ${index} is out of range`)
   const cached = env.values?.get(index); if (cached !== undefined) return cached
   const node = nodes[index]; if ('value' in node) return node.value
@@ -63,4 +63,4 @@ export function evaluateNode(nodes: EngineDataNode[], index: number, env: NodeEn
   env.values?.set(index, result); return result
 }
 
-export function evaluateNodes(nodes: EngineDataNode[], indexes: number[], env: NodeEnvironment = {}): number[] { return indexes.map((index) => evaluateNode(nodes, index, env)) }
+export function evaluateNodes(nodes: readonly EngineDataNode[], indexes: number[], env: NodeEnvironment = {}): number[] { return indexes.map((index) => evaluateNode(nodes, index, env)) }

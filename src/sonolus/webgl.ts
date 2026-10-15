@@ -21,6 +21,9 @@ export class WebGLSpriteRenderer {
   private readonly uv: number
   private readonly alpha: WebGLUniformLocation
   private readonly texture: WebGLTexture
+  // Reuse buffers across draws instead of allocating GPU resources every frame.
+  private readonly positionBuffer: WebGLBuffer
+  private readonly uvBuffer: WebGLBuffer
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const gl = canvas.getContext('webgl', { alpha: false, antialias: true })
@@ -50,7 +53,7 @@ export class WebGLSpriteRenderer {
     this.position = gl.getAttribLocation(this.program, 'aPosition')
     this.uv = gl.getAttribLocation(this.program, 'aUv')
     const alpha = gl.getUniformLocation(this.program, 'uAlpha')
-    if (!alpha) throw new Error('Could not find alpha uniform')
+    if (alpha === null) throw new Error('Could not find alpha uniform')
     this.alpha = alpha
 
     const texture = gl.createTexture()
@@ -61,6 +64,13 @@ export class WebGLSpriteRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+    const positionBuffer = gl.createBuffer()
+    if (!positionBuffer) throw new Error('Could not create position buffer')
+    this.positionBuffer = positionBuffer
+    const uvBuffer = gl.createBuffer()
+    if (!uvBuffer) throw new Error('Could not create UV buffer')
+    this.uvBuffer = uvBuffer
   }
 
   upload(image: TexImageSource, interpolation = true): void {
@@ -81,6 +91,10 @@ export class WebGLSpriteRenderer {
   }
 
   draw(draws: readonly SpriteDraw[], textureWidth: number, textureHeight: number): void {
+    if (textureWidth <= 0 || textureHeight <= 0) {
+      throw new Error('Texture dimensions must be positive')
+    }
+
     const gl = this.gl
     gl.useProgram(this.program)
     gl.activeTexture(gl.TEXTURE0)
@@ -104,8 +118,8 @@ export class WebGLSpriteRenderer {
       const uvs = new Float32Array([
         u0, v0, u0, v1, u1, v1, u1, v0,
       ])
-      bindAttribute(gl, this.position, positions, 2)
-      bindAttribute(gl, this.uv, uvs, 2)
+      bindAttribute(gl, this.positionBuffer, this.position, positions, 2)
+      bindAttribute(gl, this.uvBuffer, this.uv, uvs, 2)
       gl.uniform1f(this.alpha, Math.max(0, Math.min(1, draw.alpha)))
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
     }
@@ -135,9 +149,13 @@ function link(gl: WebGLRenderingContext, vertex: WebGLShader, fragment: WebGLSha
   return program
 }
 
-function bindAttribute(gl: WebGLRenderingContext, location: number, values: Float32Array, size: number): void {
-  const buffer = gl.createBuffer()
-  if (!buffer) throw new Error('Could not create vertex buffer')
+function bindAttribute(
+  gl: WebGLRenderingContext,
+  buffer: WebGLBuffer,
+  location: number,
+  values: Float32Array,
+  size: number,
+): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
   gl.bufferData(gl.ARRAY_BUFFER, values, gl.STREAM_DRAW)
   gl.enableVertexAttribArray(location)
